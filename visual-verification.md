@@ -25,3 +25,11 @@ The stored `N8N_WEBHOOK_URL` is recognized by the health query: `/assistant` sho
 ## Native AI migration verification
 
 The assistant now shows **Native AI connected**, `Native AI / live assistant`, and the server-side request contract. The setup notice is gone, suggested questions remain available, and the page contains no n8n chatbot messaging. The About page now documents Website → Native AI → response and separates native chatbot behavior from future workflow integrations for reports and image classification. A real server-side Manus LLM smoke test returned safe lithium-ion battery disposal guidance. Typecheck, 5 tests, and production build passed.
+
+## Homepage report issue verification
+
+The homepage now presents **Ask AI Assistant** and **Report Waste Issue** as the two prominent hero actions. A red-accented civic-reporting card appears immediately below the hero with the exact requested description and an Open Report Form action. Full-page visual review shows the card is integrated with the existing EcoSort design, followed by metrics, architecture, categories, and the native AI CTA without overflow or layout breakage.
+
+## Interactive report verification
+
+Interactive browser verification opened the homepage modal, selected **Uncollected Waste**, filled address, description, name, and contact fields, and submitted successfully. The confirmation displayed exactly **Report Submitted Successfully**, generated `WM-2026-001`, and showed **Pending Review** with the selected category. The form remains local/frontend-ready and does not falsely claim backend delivery.

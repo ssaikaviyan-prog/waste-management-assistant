@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Link } from "wouter";
-import { ArrowRight, Bot, Box, BrainCircuit, Camera, ChevronRight, CircleHelp, Database, FileWarning, Leaf, Recycle, ShieldCheck, Sparkles, Sprout, Trash2, Zap } from "lucide-react";
+import { AlertTriangle, ArrowRight, Bot, Box, BrainCircuit, Camera, ChevronRight, CircleHelp, Database, FileWarning, Leaf, MapPin, Recycle, ShieldCheck, Sparkles, Sprout, Trash2, Zap } from "lucide-react";
 import { Badge, MetricCard } from "@/components/ui";
+import ReportIssueModal from "@/components/ReportIssueModal";
 
 const metrics = [
   { icon: <Bot size={19} />, value: "2,480", label: "Queries processed", note: "demo telemetry", tone: "green" as const },
@@ -24,6 +26,7 @@ const pipeline = [
 ] as const;
 
 export default function Home() {
+  const [reportOpen, setReportOpen] = useState(false);
   return <div className="page-content">
     <section className="hero-section">
       <div className="hero-copy">
@@ -31,9 +34,10 @@ export default function Home() {
         <h1>Turn waste into<br /><span>the right choice.</span></h1>
         <p>Ask better questions, understand your waste stream, and make confident disposal decisions with a native AI assistant specialized in waste management.</p>
         <div className="hero-actions">
-          <Link href="/classify" className="button button-primary"><Camera size={18} /> Scan waste <ArrowRight size={16} /></Link>
-          <Link href="/assistant" className="button button-secondary"><Bot size={18} /> Ask the assistant</Link>
+          <Link href="/assistant" className="button button-primary"><Bot size={18} /> Ask AI Assistant <ArrowRight size={16} /></Link>
+          <button className="button button-report" onClick={() => setReportOpen(true)}><AlertTriangle size={18} /> Report Waste Issue</button>
         </div>
+        <Link href="/classify" className="hero-secondary-link"><Camera size={15} /> Or scan an item for classification <ArrowRight size={14} /></Link>
         <div className="hero-trust"><span><ShieldCheck size={15} /> No fabricated answers</span><span><Database size={15} /> Server-side AI</span></div>
       </div>
       <div className="command-deck glass-card">
@@ -49,6 +53,8 @@ export default function Home() {
       </div>
     </section>
 
+    <section className="report-issue-card glass-card" aria-label="Report a waste issue"><div className="report-issue-card-icon"><AlertTriangle size={24} /></div><div className="report-issue-card-copy"><div className="eyebrow">Community action / civic reporting</div><h2>REPORT WASTE ISSUE</h2><p>See an uncleared or illegally dumped waste area? Report it to help keep your community clean.</p></div><div className="report-issue-card-actions"><span><MapPin size={14} /> Location + photo ready</span><button className="button button-report" onClick={() => setReportOpen(true)}>Open Report Form <ArrowRight size={16} /></button></div></section>
+
     <section className="metrics-grid">{metrics.map((metric) => <MetricCard key={metric.label} {...metric} />)}</section>
 
     <section className="section-block">
@@ -62,5 +68,6 @@ export default function Home() {
     </section>
 
     <section className="cta-strip glass-card"><div className="cta-icon"><Bot size={24} /></div><div><div className="eyebrow">Need a clear answer?</div><h2>Ask the waste management assistant.</h2><p>Questions are answered by the server-side native AI. No fake responses, no hidden fallback.</p></div><Link href="/assistant" className="button button-primary">Start a conversation <ArrowRight size={16} /></Link></section>
+    <ReportIssueModal open={reportOpen} onClose={() => setReportOpen(false)} />
   </div>;
 }
