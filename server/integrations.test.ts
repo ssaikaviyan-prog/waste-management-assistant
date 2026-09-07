@@ -55,4 +55,26 @@ describe("assistant native LLM proxy", () => {
       sessionId: "test-session",
     })).rejects.toThrow("native AI assistant could not respond");
   });
+
+  it("classifies an uploaded image through native vision", async () => {
+    vi.mocked(invokeLLM).mockResolvedValueOnce({
+      choices: [{ message: { role: "assistant", content: JSON.stringify({ category: "Recyclable", disposalMethod: "Rinse and place in the recycling stream.", recyclingRecommendation: "Keep it clean and dry.", confidence: "High" }) }, index: 0, finish_reason: "stop" }],
+      id: "vision-test",
+      created: 0,
+      model: "test-vision-model",
+    });
+
+    const result = await appRouter.createCaller(ctx).classifier.submit({
+      sessionId: "test-session",
+      fileName: "bottle.png",
+      mimeType: "image/png",
+      imageData: "data:image/png;base64,ZmFrZQ==",
+    });
+
+    expect(result.category).toBe("Recyclable");
+    expect(invokeLLM).toHaveBeenCalledWith(expect.objectContaining({
+      response_format: expect.objectContaining({ type: "json_schema" }),
+      messages: expect.arrayContaining([expect.objectContaining({ role: "user", content: expect.arrayContaining([expect.objectContaining({ type: "image_url" })]) })]),
+    }));
+  });
 });

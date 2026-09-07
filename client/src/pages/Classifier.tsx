@@ -16,7 +16,7 @@ export default function Classifier() {
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const { data: health } = trpc.integrations.health.useQuery(undefined, { staleTime: 30_000 });
-  const webhookReady = Boolean(health?.n8nConfigured);
+  const aiReady = Boolean(health?.nativeAIConfigured);
   const mutation = trpc.classifier.submit.useMutation({
     onSuccess: (payload) => {
       if (payload && typeof payload === "object") setResult(payload as ClassificationResult);
@@ -36,8 +36,8 @@ export default function Classifier() {
   const clear = () => { setFile(null); setPreview(""); setResult(null); setError(""); if (inputRef.current) inputRef.current.value = ""; };
   const classify = async () => {
     if (!file) return;
-    if (!webhookReady) {
-      setError("Connect N8N_WEBHOOK_URL to enable image classification. No image was sent.");
+    if (!aiReady) {
+      setError("The native AI connection is not ready yet. No image was sent.");
       return;
     }
     const imageData = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = reject; reader.readAsDataURL(file); });
@@ -45,18 +45,18 @@ export default function Classifier() {
   };
 
   return <div className="page-content">
-    <SectionHeader eyebrow="Computer vision / prepared workflow" title="What is this waste?" description="Upload an image to prepare a classification request. The result panel stays honest until a connected n8n model returns category and disposal guidance." action={<div className="accuracy-callout"><ScanLine size={21} /><div><strong>Model status</strong><span>Not connected</span></div></div>} />
+    <SectionHeader eyebrow="Computer vision / native AI" title="What is this waste?" description="Upload an image and let the native AI model identify a likely category, safe disposal method, and recycling recommendation." action={<div className="accuracy-callout"><ScanLine size={21} /><div><strong>Model status</strong><span>{aiReady ? "Connected" : "Connecting"}</span></div></div>} />
     <div className="classifier-layout">
       <div>
         <div className={`upload-card glass-card ${file ? "has-file" : ""}`} onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}>
           {preview ? <div className="preview-state"><img src={preview} alt="Selected waste preview" /><div className="preview-overlay"><span><FileImage size={15} /> {file?.name}</span><button onClick={clear} aria-label="Remove image"><X size={17} /></button></div></div> : <div className="upload-state"><div className="upload-icon"><CloudUpload size={33} /></div><h2>Drag & drop your waste image here</h2><p>Supports JPG, PNG, WEBP up to 8 MB</p><div className="upload-actions"><Button onClick={() => inputRef.current?.click()}><Upload size={17} /> Browse files</Button><Button variant="secondary" onClick={() => inputRef.current?.click()}><Camera size={17} /> Use camera</Button></div><span className="drop-note">or drop an image anywhere in this panel</span></div>}
           <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleInput} hidden />
         </div>
-        {file && <button className="classify-button button button-primary" onClick={() => void classify()} disabled={mutation.isPending || !webhookReady}>{mutation.isPending ? <><Loader2 size={17} className="spin" /> Sending to n8n…</> : webhookReady ? <><Sparkles size={17} /> Send for AI classification <ArrowRight size={16} /></> : <><AlertCircle size={17} /> Connect n8n to classify</>}</button>}
+        {file && <button className="classify-button button button-primary" onClick={() => void classify()} disabled={mutation.isPending || !aiReady}>{mutation.isPending ? <><Loader2 size={17} className="spin" /> Analyzing image…</> : aiReady ? <><Sparkles size={17} /> Classify with native AI <ArrowRight size={16} /></> : <><AlertCircle size={17} /> Native AI is connecting</>}</button>}
         {error && <div className="integration-error inline-error"><AlertCircle size={17} /><p>{error}</p><button onClick={() => setError("")}><X size={15} /></button></div>}
         <div className="sample-panel"><div className="panel-heading"><div><div className="eyebrow">Quick test references</div><h3>Common items to classify</h3></div><span>UI examples only</span></div><div className="sample-grid">{sampleItems.map(([name, category, tone]) => <button key={name} className="sample-item" onClick={() => setError(`Sample “${name}” is a visual reference only. Upload an image to send a real request.`)}><span className={`sample-thumb sample-${tone}`}><ScanLine size={21} /></span><span><strong>{name}</strong><small>{category}</small></span><ArrowRight size={14} /></button>)}</div></div>
       </div>
-      <aside className="result-panel glass-card"><div className="panel-heading"><div><div className="eyebrow">Classification output</div><h3>AI result</h3></div><Badge tone={result ? "green" : "gray"}>{result ? "Received" : "Awaiting model"}</Badge></div>{result ? <div className="result-content"><div className="result-category"><span>Detected category</span><strong>{result.category || "Not provided"}</strong>{result.confidence && <Badge tone="green">{result.confidence} confidence</Badge>}</div><div className="result-detail"><CheckCircle2 size={18} /><div><strong>Recommended disposal</strong><p>{result.disposalMethod || "No disposal method was returned."}</p></div></div><div className="result-detail"><Sparkles size={18} /><div><strong>Recycling recommendation</strong><p>{result.recyclingRecommendation || "No recycling recommendation was returned."}</p></div></div></div> : <div className="result-empty"><div className="result-orb"><ScanLine size={25} /></div><h3>Your result will appear here.</h3><p>Upload an image and send it to your configured n8n classification flow. This frontend does not guess what an image contains.</p><div className="result-schema"><span>Expected response</span><code>category</code><code>disposalMethod</code><code>recyclingRecommendation</code></div></div>}</aside>
+      <aside className="result-panel glass-card"><div className="panel-heading"><div><div className="eyebrow">Classification output</div><h3>AI result</h3></div><Badge tone={result ? "green" : "gray"}>{result ? "Received" : "Awaiting model"}</Badge></div>{result ? <div className="result-content"><div className="result-category"><span>Detected category</span><strong>{result.category || "Not provided"}</strong>{result.confidence && <Badge tone="green">{result.confidence} confidence</Badge>}</div><div className="result-detail"><CheckCircle2 size={18} /><div><strong>Recommended disposal</strong><p>{result.disposalMethod || "No disposal method was returned."}</p></div></div><div className="result-detail"><Sparkles size={18} /><div><strong>Recycling recommendation</strong><p>{result.recyclingRecommendation || "No recycling recommendation was returned."}</p></div></div></div> : <div className="result-empty"><div className="result-orb"><ScanLine size={25} /></div><h3>Your result will appear here.</h3><p>Upload an image and send it to the native AI classifier. This frontend does not guess what an image contains.</p><div className="result-schema"><span>Expected response</span><code>category</code><code>disposalMethod</code><code>recyclingRecommendation</code></div></div>}</aside>
     </div>
   </div>;
 }

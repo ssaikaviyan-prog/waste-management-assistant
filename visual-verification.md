@@ -33,3 +33,7 @@ The homepage now presents **Ask AI Assistant** and **Report Waste Issue** as the
 ## Interactive report verification
 
 Interactive browser verification opened the homepage modal, selected **Uncollected Waste**, filled address, description, name, and contact fields, and submitted successfully. The confirmation displayed exactly **Report Submitted Successfully**, generated `WM-2026-001`, and showed **Pending Review** with the selected category. The form remains local/frontend-ready and does not falsely claim backend delivery.
+
+## Native classifier verification
+
+The classifier now displays **Computer vision / native AI**, **Model status: Connected**, and a clear native AI image-analysis description. Its upload CTA and result panel no longer mention n8n or require the test webhook. The native vision route is covered by an integration test using an image content part and JSON schema response format. Full validation passed with 6 tests, typecheck, and build.

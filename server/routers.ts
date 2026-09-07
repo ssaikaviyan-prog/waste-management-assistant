@@ -21,6 +21,53 @@ Your expertise covers waste segregation, recycling guidance, composting, hazardo
 
 Answer in a practical, friendly, concise way. When relevant, explain which waste category applies, preparation steps, the safest disposal route, and what not to do. Ask for the user's city or collection context when local rules could change the answer. Never claim that a material is accepted by a local program unless the user provides that context. For hazardous materials, batteries, chemicals, medical waste, or unknown substances, prioritize safety and recommend an approved specialist collection point. Do not invent collection schedules, addresses, or regulations. If the question is unrelated to waste management, politely explain that you specialize in waste and environmental guidance and invite a relevant question. Use short headings or bullets when they improve clarity.`;
 
+const classificationInput = z.object({
+  sessionId: z.string().trim().min(1).max(128),
+  fileName: z.string().trim().min(1).max(255),
+  mimeType: z.string().trim().min(1).max(100),
+  imageData: z.string().max(8_000_000),
+});
+
+async function classifyNativeImage(input: z.infer<typeof classificationInput>) {
+  try {
+    const result = await invokeLLM({
+      messages: [
+        { role: "system", content: "You are EcoSort AI's waste image classifier. Classify only what can reasonably be inferred from the image. Choose exactly one category: Biodegradable, Recyclable, E-Waste, Hazardous, or Mixed Waste. Provide safe, general disposal guidance and a recycling recommendation. Never invent local collection rules. Return only the requested JSON fields." },
+        { role: "user", content: [
+          { type: "text", text: `Classify this waste image named ${input.fileName}.` },
+          { type: "image_url", image_url: { url: input.imageData, detail: "low" } },
+        ] },
+      ],
+      maxTokens: 500,
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "waste_classification",
+          strict: true,
+          schema: {
+            type: "object",
+            properties: {
+              category: { type: "string", enum: ["Biodegradable", "Recyclable", "E-Waste", "Hazardous", "Mixed Waste"] },
+              disposalMethod: { type: "string" },
+              recyclingRecommendation: { type: "string" },
+              confidence: { type: "string", enum: ["High", "Medium", "Low"] },
+            },
+            required: ["category", "disposalMethod", "recyclingRecommendation", "confidence"],
+            additionalProperties: false,
+          },
+        },
+      },
+    });
+    const content = result.choices?.[0]?.message?.content;
+    const text = typeof content === "string" ? content : Array.isArray(content) ? content.filter((part): part is { type: "text"; text: string } => part.type === "text").map((part) => part.text).join("\n") : "";
+    const parsed = JSON.parse(text) as Record<string, string>;
+    return { category: parsed.category, disposalMethod: parsed.disposalMethod, recyclingRecommendation: parsed.recyclingRecommendation, confidence: parsed.confidence };
+  } catch (error) {
+    console.error("[Native AI] Classification request failed:", error);
+    throw new TRPCError({ code: "BAD_GATEWAY", message: "The native AI could not classify this image. Try a clearer photo." });
+  }
+}
+
 async function askNativeAssistant(message: string) {
   try {
     const result = await invokeLLM({
@@ -115,12 +162,7 @@ export const appRouter = router({
     })),
   }),
   classifier: router({
-    submit: publicProcedure.input(z.object({
-      sessionId: z.string().trim().min(1).max(128),
-      fileName: z.string().trim().min(1).max(255),
-      mimeType: z.string().trim().min(1).max(100),
-      imageData: z.string().max(8_000_000).optional(),
-    })).mutation(async ({ input }) => postToN8n({ type: "waste-classification", ...input })),
+    submit: publicProcedure.input(classificationInput).mutation(async ({ input }) => classifyNativeImage(input)),
   }),
   reports: router({
     submit: publicProcedure.input(z.object({
