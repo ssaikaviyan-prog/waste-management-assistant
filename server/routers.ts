@@ -35,6 +35,8 @@ async function postToN8n(payload: Record<string, unknown>) {
     if (!response.ok) {
       const message = response.status === 404 && webhook.includes("/webhook-test/")
         ? "The n8n test webhook is not listening. Open the workflow in n8n and click Execute Workflow, or use its active production /webhook/ URL."
+        : response.status === 500
+          ? "The n8n workflow returned 500. Check the AI Agent/LLM node, credentials, and that the workflow returns a response field."
         : `The n8n webhook returned ${response.status}. Check the workflow response and URL.`;
       throw new TRPCError({ code: "BAD_GATEWAY", message });
     }
@@ -82,7 +84,9 @@ export const appRouter = router({
   }),
   assistant: router({
     send: publicProcedure.input(assistantInput).mutation(async ({ input }) => {
-      const payload = await postToN8n(input);
+      // Keep the documented contract while also supporting n8n AI Agent workflows
+      // that commonly read the incoming chat text from `chatInput`.
+      const payload = await postToN8n({ ...input, chatInput: input.message });
       return { response: extractAssistantResponse(payload) };
     }),
   }),

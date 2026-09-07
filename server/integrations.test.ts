@@ -33,4 +33,18 @@ describe("assistant n8n proxy", () => {
       sessionId: "test-session",
     })).rejects.toThrow("test webhook is not listening");
   });
+
+  it("explains when the n8n workflow fails internally", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("", { status: 500 })));
+    const ctx = {
+      user: null,
+      req: {} as TrpcContext["req"],
+      res: {} as TrpcContext["res"],
+    } as TrpcContext;
+
+    await expect(appRouter.createCaller(ctx).assistant.send({
+      message: "Can I compost food scraps?",
+      sessionId: "test-session",
+    })).rejects.toThrow("AI Agent/LLM node");
+  });
 });
