@@ -18,6 +18,8 @@ export default function Assistant() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [error, setError] = useState("");
   const sessionId = getSessionId();
+  const { data: health } = trpc.integrations.health.useQuery(undefined, { staleTime: 30_000 });
+  const webhookReady = Boolean(health?.n8nConfigured);
   const mutation = trpc.assistant.send.useMutation({
     onSuccess: ({ response }, variables) => {
       setMessages((current) => [...current, { id: crypto.randomUUID(), role: "assistant", content: response }]);
@@ -31,7 +33,7 @@ export default function Assistant() {
   const submit = (event?: FormEvent) => {
     event?.preventDefault();
     const message = input.trim();
-    if (!message || mutation.isPending) return;
+    if (!message || mutation.isPending || !webhookReady) return;
     setMessages((current) => [...current, { id: crypto.randomUUID(), role: "user", content: message }]);
     setError("");
     mutation.mutate({ message, sessionId });
@@ -45,13 +47,14 @@ export default function Assistant() {
     <div className="assistant-layout">
       <section className="chat-panel glass-card">
         <div className="chat-toolbar"><div className="chat-agent"><span className="deck-icon"><Bot size={19} /></span><div><strong>Waste management assistant</strong><small><i className="pulse-dot" /> n8n bridge / session {sessionId.slice(0, 8)}</small></div></div><div className="chat-toolbar-status"><ShieldCheck size={15} /> Real responses only</div></div>
+        {!webhookReady && <div className="integration-notice"><AlertCircle size={16} /><div><strong>Connect your n8n Webhook to send questions</strong><p>The chat is ready, but it will not call an unavailable endpoint or invent an answer. Add <code>N8N_WEBHOOK_URL</code> server-side to enable sending.</p></div></div>}
         <div className="chat-history" aria-live="polite">
           {messages.length === 0 && <div className="chat-welcome"><div className="welcome-orb"><Leaf size={29} /></div><h2>What are you trying to sort?</h2><p>Ask a question and this interface will send it to your configured n8n Webhook. Until a webhook is connected, no response is invented here.</p><div className="suggestion-grid">{suggestions.map((suggestion) => <button key={suggestion} onClick={() => setInput(suggestion)}>{suggestion}<ArrowUp size={14} /></button>)}</div></div>}
           {messages.map((message) => <div key={message.id} className={`message-row ${message.role}`}><div className="message-avatar">{message.role === "user" ? <UserRound size={15} /> : <Bot size={15} />}</div><div className="message-bubble"><span className="message-role">{message.role === "user" ? "You" : "EcoSort AI"}</span><p>{message.content}</p>{message.role === "assistant" && <button className="copy-button" aria-label="Copy response" onClick={() => void navigator.clipboard?.writeText(message.content)}><Copy size={13} /></button>}</div></div>)}
           {mutation.isPending && <div className="message-row assistant"><div className="message-avatar"><Bot size={15} /></div><div className="message-bubble loading-bubble"><span className="message-role">EcoSort AI</span><div className="loading-dots"><i /><i /><i /></div><small>Waiting for the n8n agent response…</small></div></div>}
           {error && <div className="integration-error"><AlertCircle size={17} /><div><strong>Couldn’t complete the request</strong><p>{error}</p></div><button aria-label="Dismiss error" onClick={() => setError("")}>×</button></div>}
         </div>
-        <form className="chat-composer" onSubmit={submit}><textarea value={input} onChange={(event) => setInput(event.target.value)} placeholder="Ask about an item, material, or disposal decision…" rows={1} disabled={mutation.isPending} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); submit(); } }} /><button className="send-button" type="submit" aria-label="Send question" disabled={!input.trim() || mutation.isPending}>{mutation.isPending ? <Loader2 size={18} className="spin" /> : <ArrowUp size={19} />}</button></form>
+        <form className="chat-composer" onSubmit={submit}><textarea value={input} onChange={(event) => setInput(event.target.value)} placeholder={webhookReady ? "Ask about an item, material, or disposal decision…" : "Connect n8n to enable sending…"} rows={1} disabled={mutation.isPending || !webhookReady} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); submit(); } }} /><button className="send-button" type="submit" aria-label="Send question" disabled={!input.trim() || mutation.isPending || !webhookReady}>{mutation.isPending ? <Loader2 size={18} className="spin" /> : <ArrowUp size={19} />}</button></form>
         <div className="composer-note"><span><CheckCircle2 size={13} /> Your session ID is kept locally</span><span>Shift + Enter for a new line</span></div>
       </section>
 

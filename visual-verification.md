@@ -13,3 +13,7 @@ No route showed visible overflow or missing styles in the desktop screenshots. T
 ## Mobile verification findings
 
 At 390×844, the home page stacks the hero and command deck without horizontal overflow, keeps the primary actions readable, and collapses navigation to the avatar/menu controls. The assistant page stacks its heading and chat panel, retains the explicit no-response-is-invented copy, and keeps suggestion cards within the phone viewport. The visual language remains consistent at the mobile breakpoint.
+
+## Unconfigured integration fix
+
+After the fix, `/assistant` shows a non-error amber setup notice: questions are not sent while `N8N_WEBHOOK_URL` is absent, and the composer/send control is disabled instead of producing a tRPC mutation error. `/classify` remains honest with a not-connected model state, and `/report` keeps its form visible while pausing submission until n8n is configured. Typecheck, both Vitest tests, and the production build all pass.

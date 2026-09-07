@@ -12,12 +12,14 @@ export default function Report() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
   const imageRef = useRef<HTMLInputElement>(null);
+  const { data: health } = trpc.integrations.health.useQuery(undefined, { staleTime: 30_000 });
+  const webhookReady = Boolean(health?.n8nConfigured);
   const mutation = trpc.reports.submit.useMutation({
     onSuccess: () => { setSubmitted(true); setError(""); },
     onError: (requestError) => setError(getErrorMessage(requestError, "The report could not be sent. Check the n8n webhook configuration.")),
   });
   const update = (key: keyof typeof form, value: string) => setForm((current) => ({ ...current, [key]: value }));
-  const submit = (event: FormEvent) => { event.preventDefault(); setError(""); mutation.mutate({ ...form, imageName: image?.name, sessionId: getSessionId() }); };
+  const submit = (event: FormEvent) => { event.preventDefault(); if (!webhookReady) { setError("Connect N8N_WEBHOOK_URL to enable report submission. No report was sent."); return; } setError(""); mutation.mutate({ ...form, imageName: image?.name, sessionId: getSessionId() }); };
   const reset = () => { setForm({ name: "", location: "", wasteType: "", description: "" }); setImage(null); setSubmitted(false); setError(""); };
 
   return <div className="page-content report-page">
@@ -31,7 +33,8 @@ export default function Report() {
           <label><span>What should the team know?</span><textarea value={form.description} onChange={(event) => update("description", event.target.value)} placeholder="Describe the waste, collection problem, or safety concern…" rows={5} required minLength={10} /><small>{form.description.length}/2000 characters</small></label>
           <div className="attachment-field"><div><span>Optional image</span><small>Attach a photo to help the workflow triage the report.</small></div><button type="button" className="attachment-button" onClick={() => imageRef.current?.click()}><Paperclip size={16} /> {image ? image.name : "Attach file"}</button><input ref={imageRef} hidden type="file" accept="image/*" onChange={(event) => setImage(event.target.files?.[0] || null)} /></div>
           {error && <div className="integration-error inline-error"><AlertCircle size={17} /><p>{error}</p><button type="button" onClick={() => setError("")}><X size={15} /></button></div>}
-          <div className="form-actions"><span><ShieldIcon /> Sent securely through the server proxy</span><Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? "Sending…" : "Send report"} <Send size={16} /></Button></div>
+          <div className="form-actions"><span><ShieldIcon /> Sent securely through the server proxy</span><Button type="submit" disabled={mutation.isPending || !webhookReady}>{mutation.isPending ? "Sending…" : webhookReady ? "Send report" : "Connect n8n first"} <Send size={16} /></Button></div>
+          {!webhookReady && <div className="integration-notice compact"><AlertCircle size={16} /><div><strong>Report submission is paused until n8n is connected.</strong><p>Add <code>N8N_WEBHOOK_URL</code> as a server-side project secret to enable this form.</p></div></div>}
         </>}
       </form>
       <aside className="report-aside"><div className="aside-card report-note"><FileWarning size={25} /><h3>Report with context.</h3><p>Good reports help an agent or human team route the issue faster. Include landmarks, timing, and whether the material presents a hazard.</p></div><div className="aside-card"><div className="eyebrow">Workflow handoff</div><div className="handoff-step"><span>01</span><div><strong>Website</strong><small>Validates and packages the report</small></div></div><div className="handoff-line" /><div className="handoff-step"><span>02</span><div><strong>n8n Webhook</strong><small>Stores, triages, and routes the report</small></div></div><div className="handoff-line" /><div className="handoff-step"><span>03</span><div><strong>Collection team</strong><small>Receives the next action through your workflow</small></div></div></div></aside>

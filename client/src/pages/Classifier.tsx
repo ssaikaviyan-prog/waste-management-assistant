@@ -15,6 +15,8 @@ export default function Classifier() {
   const [result, setResult] = useState<ClassificationResult | null>(null);
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const { data: health } = trpc.integrations.health.useQuery(undefined, { staleTime: 30_000 });
+  const webhookReady = Boolean(health?.n8nConfigured);
   const mutation = trpc.classifier.submit.useMutation({
     onSuccess: (payload) => {
       if (payload && typeof payload === "object") setResult(payload as ClassificationResult);
@@ -34,6 +36,10 @@ export default function Classifier() {
   const clear = () => { setFile(null); setPreview(""); setResult(null); setError(""); if (inputRef.current) inputRef.current.value = ""; };
   const classify = async () => {
     if (!file) return;
+    if (!webhookReady) {
+      setError("Connect N8N_WEBHOOK_URL to enable image classification. No image was sent.");
+      return;
+    }
     const imageData = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = reject; reader.readAsDataURL(file); });
     mutation.mutate({ sessionId: getSessionId(), fileName: file.name, mimeType: file.type, imageData });
   };
@@ -46,7 +52,7 @@ export default function Classifier() {
           {preview ? <div className="preview-state"><img src={preview} alt="Selected waste preview" /><div className="preview-overlay"><span><FileImage size={15} /> {file?.name}</span><button onClick={clear} aria-label="Remove image"><X size={17} /></button></div></div> : <div className="upload-state"><div className="upload-icon"><CloudUpload size={33} /></div><h2>Drag & drop your waste image here</h2><p>Supports JPG, PNG, WEBP up to 8 MB</p><div className="upload-actions"><Button onClick={() => inputRef.current?.click()}><Upload size={17} /> Browse files</Button><Button variant="secondary" onClick={() => inputRef.current?.click()}><Camera size={17} /> Use camera</Button></div><span className="drop-note">or drop an image anywhere in this panel</span></div>}
           <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleInput} hidden />
         </div>
-        {file && <button className="classify-button button button-primary" onClick={() => void classify()} disabled={mutation.isPending}>{mutation.isPending ? <><Loader2 size={17} className="spin" /> Sending to n8n…</> : <><Sparkles size={17} /> Send for AI classification <ArrowRight size={16} /></>}</button>}
+        {file && <button className="classify-button button button-primary" onClick={() => void classify()} disabled={mutation.isPending || !webhookReady}>{mutation.isPending ? <><Loader2 size={17} className="spin" /> Sending to n8n…</> : webhookReady ? <><Sparkles size={17} /> Send for AI classification <ArrowRight size={16} /></> : <><AlertCircle size={17} /> Connect n8n to classify</>}</button>}
         {error && <div className="integration-error inline-error"><AlertCircle size={17} /><p>{error}</p><button onClick={() => setError("")}><X size={15} /></button></div>}
         <div className="sample-panel"><div className="panel-heading"><div><div className="eyebrow">Quick test references</div><h3>Common items to classify</h3></div><span>UI examples only</span></div><div className="sample-grid">{sampleItems.map(([name, category, tone]) => <button key={name} className="sample-item" onClick={() => setError(`Sample “${name}” is a visual reference only. Upload an image to send a real request.`)}><span className={`sample-thumb sample-${tone}`}><ScanLine size={21} /></span><span><strong>{name}</strong><small>{category}</small></span><ArrowRight size={14} /></button>)}</div></div>
       </div>
