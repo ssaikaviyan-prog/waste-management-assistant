@@ -77,4 +77,18 @@ describe("assistant native LLM proxy", () => {
       messages: expect.arrayContaining([expect.objectContaining({ role: "user", content: expect.arrayContaining([expect.objectContaining({ type: "image_url" })]) })]),
     }));
   });
+
+  it("prepares a local report payload with review status", async () => {
+    const result = await appRouter.createCaller(ctx).reports.submit({
+      name: "Test Citizen",
+      location: "North campus gate",
+      wasteType: "Mixed Waste",
+      description: "Waste has not been collected for three days.",
+      sessionId: "test-session",
+    });
+
+    expect(result.submitted).toBe(true);
+    expect(result.reportId).toMatch(/^WM-\d{4}-\d{3}$/);
+    expect(result.payload.status).toBe("Pending Review");
+  });
 });

@@ -3,6 +3,7 @@ import { AlertCircle, ArrowRight, Camera, CheckCircle2, CloudUpload, FileImage, 
 import { Badge, Button, SectionHeader } from "@/components/ui";
 import { getErrorMessage, getSessionId } from "@/lib/integrations";
 import { trpc } from "@/lib/trpc";
+import { analyzeWasteImage } from "@/lib/wasteAnalysis";
 
 type ClassificationResult = { category?: string; disposalMethod?: string; recyclingRecommendation?: string; confidence?: string };
 const sampleItems = [
@@ -41,7 +42,7 @@ export default function Classifier() {
       return;
     }
     const imageData = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = reject; reader.readAsDataURL(file); });
-    mutation.mutate({ sessionId: getSessionId(), fileName: file.name, mimeType: file.type, imageData });
+    void analyzeWasteImage({ sessionId: getSessionId(), fileName: file.name, mimeType: file.type, imageData }, mutation.mutateAsync);
   };
 
   return <div className="page-content">

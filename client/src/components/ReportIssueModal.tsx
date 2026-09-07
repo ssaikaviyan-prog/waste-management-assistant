@@ -70,7 +70,7 @@ export default function ReportIssueModal({ open, onClose }: { open: boolean; onC
       status: "Pending Review",
       created_at: new Date().toISOString(),
     };
-    // This payload is ready for a future n8n/API submission without claiming delivery today.
+    // Keep the structured payload ready for a future direct civic-reporting API.
     setSubmitted(payload);
   };
 
