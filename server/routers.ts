@@ -33,7 +33,10 @@ async function postToN8n(payload: Record<string, unknown>) {
     });
     const raw = await response.text();
     if (!response.ok) {
-      throw new TRPCError({ code: "BAD_GATEWAY", message: `The n8n webhook returned ${response.status}. Check the workflow response and URL.` });
+      const message = response.status === 404 && webhook.includes("/webhook-test/")
+        ? "The n8n test webhook is not listening. Open the workflow in n8n and click Execute Workflow, or use its active production /webhook/ URL."
+        : `The n8n webhook returned ${response.status}. Check the workflow response and URL.`;
+      throw new TRPCError({ code: "BAD_GATEWAY", message });
     }
     let parsed: unknown = raw;
     try { parsed = raw ? JSON.parse(raw) : null; } catch { /* Plain text from n8n is supported. */ }

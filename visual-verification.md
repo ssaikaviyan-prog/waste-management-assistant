@@ -17,3 +17,7 @@ At 390×844, the home page stacks the hero and command deck without horizontal o
 ## Unconfigured integration fix
 
 After the fix, `/assistant` shows a non-error amber setup notice: questions are not sent while `N8N_WEBHOOK_URL` is absent, and the composer/send control is disabled instead of producing a tRPC mutation error. `/classify` remains honest with a not-connected model state, and `/report` keeps its form visible while pausing submission until n8n is configured. Typecheck, both Vitest tests, and the production build all pass.
+
+## Webhook-connected assistant verification
+
+The stored `N8N_WEBHOOK_URL` is recognized by the health query: `/assistant` shows **Agent connected**, the setup notice is gone, and suggested questions are enabled. Selecting a suggestion now submits it directly to the assistant mutation rather than only filling the composer. The supplied n8n test endpoint returned HTTP 404 for a POST because the n8n test webhook is not actively listening; the server now surfaces an actionable message directing the user to Execute Workflow or the production URL. Typecheck, 3 test files / 4 tests, and production build pass.
