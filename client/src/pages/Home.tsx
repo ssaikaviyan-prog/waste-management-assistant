@@ -19,7 +19,7 @@ const categories = [
 
 const pipeline = [
   ["01", "Ask", "Describe the material or disposal question.", CircleHelp],
-  ["02", "Understand", "n8n routes your request to the AI agent.", BrainCircuit],
+  ["02", "Understand", "Native AI interprets the material and context.", BrainCircuit],
   ["03", "Act", "Get a clear next step for your local context.", ArrowRight],
 ] as const;
 
@@ -29,23 +29,23 @@ export default function Home() {
       <div className="hero-copy">
         <Badge tone="green">Next-gen ecological intelligence</Badge>
         <h1>Turn waste into<br /><span>the right choice.</span></h1>
-        <p>Ask better questions, understand your waste stream, and make confident disposal decisions with a frontend ready for your n8n AI agent.</p>
+        <p>Ask better questions, understand your waste stream, and make confident disposal decisions with a native AI assistant specialized in waste management.</p>
         <div className="hero-actions">
           <Link href="/classify" className="button button-primary"><Camera size={18} /> Scan waste <ArrowRight size={16} /></Link>
           <Link href="/assistant" className="button button-secondary"><Bot size={18} /> Ask the assistant</Link>
         </div>
-        <div className="hero-trust"><span><ShieldCheck size={15} /> No fabricated answers</span><span><Database size={15} /> Webhook-ready</span></div>
+        <div className="hero-trust"><span><ShieldCheck size={15} /> No fabricated answers</span><span><Database size={15} /> Server-side AI</span></div>
       </div>
       <div className="command-deck glass-card">
         <div className="deck-orbit orbit-one" /><div className="deck-orbit orbit-two" />
         <div className="card-topline"><div className="deck-title"><span className="deck-icon"><Bot size={21} /></span><div><strong>AI command deck</strong><small>Integration telemetry</small></div></div><Badge tone="green">Ready</Badge></div>
         <div className="deck-lines">
-          <div className="telemetry-row"><span><span className="telemetry-icon green"><ShieldCheck size={16} /></span>Response integrity</span><strong>n8n contract</strong></div>
+          <div className="telemetry-row"><span><span className="telemetry-icon green"><ShieldCheck size={16} /></span>Response integrity</span><strong>Native AI</strong></div>
           <div className="telemetry-row"><span><span className="telemetry-icon cyan"><Database size={16} /></span>Knowledge routing</span><strong>Agent-led</strong></div>
           <div className="telemetry-row"><span><span className="telemetry-icon blue"><Sparkles size={16} /></span>Image analysis</span><strong className="muted">Model pending</strong></div>
         </div>
         <div className="deck-visual"><div className="visual-grid" /><div className="visual-scan-line" /><div className="visual-center"><Leaf size={34} /><span>Eco intelligence</span></div><div className="visual-corner top-left">SYS / 09</div><div className="visual-corner bottom-right">READY_01</div></div>
-        <div className="deck-footer"><span><i className="pulse-dot" /> Interface online</span><span>v1.0 / n8n bridge</span></div>
+        <div className="deck-footer"><span><i className="pulse-dot" /> Interface online</span><span>v2.0 / native AI</span></div>
       </div>
     </section>
 
@@ -61,6 +61,6 @@ export default function Home() {
       <div className="category-grid">{categories.map(({ name, description, icon: Icon, tone, count }) => <Link href="/guide" className="category-card" key={name}><div className={`category-icon category-${tone}`}><Icon size={22} /></div><div className="category-count">{count}</div><h3>{name}</h3><p>{description}</p><span className="card-arrow"><ChevronRight size={16} /></span></Link>)}</div>
     </section>
 
-    <section className="cta-strip glass-card"><div className="cta-icon"><Bot size={24} /></div><div><div className="eyebrow">Need a clear answer?</div><h2>Ask the waste management assistant.</h2><p>Questions are sent to your configured n8n webhook. No fake responses, no hidden fallback.</p></div><Link href="/assistant" className="button button-primary">Start a conversation <ArrowRight size={16} /></Link></section>
+    <section className="cta-strip glass-card"><div className="cta-icon"><Bot size={24} /></div><div><div className="eyebrow">Need a clear answer?</div><h2>Ask the waste management assistant.</h2><p>Questions are answered by the server-side native AI. No fake responses, no hidden fallback.</p></div><Link href="/assistant" className="button button-primary">Start a conversation <ArrowRight size={16} /></Link></section>
   </div>;
 }

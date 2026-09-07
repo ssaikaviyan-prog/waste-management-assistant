@@ -2,6 +2,8 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
+import { ENV } from "./_core/env";
+import { invokeLLM } from "./_core/llm";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 
@@ -13,12 +15,47 @@ const assistantInput = z.object({
   sessionId: z.string().trim().min(1).max(128),
 });
 
+const wasteAssistantPrompt = `You are EcoSort AI, a careful waste-management specialist for households, campuses, and communities.
+
+Your expertise covers waste segregation, recycling guidance, composting, hazardous waste, e-waste, waste reduction, collection guidance, and general waste-management questions.
+
+Answer in a practical, friendly, concise way. When relevant, explain which waste category applies, preparation steps, the safest disposal route, and what not to do. Ask for the user's city or collection context when local rules could change the answer. Never claim that a material is accepted by a local program unless the user provides that context. For hazardous materials, batteries, chemicals, medical waste, or unknown substances, prioritize safety and recommend an approved specialist collection point. Do not invent collection schedules, addresses, or regulations. If the question is unrelated to waste management, politely explain that you specialize in waste and environmental guidance and invite a relevant question. Use short headings or bullets when they improve clarity.`;
+
+async function askNativeAssistant(message: string) {
+  try {
+    const result = await invokeLLM({
+      messages: [
+        { role: "system", content: wasteAssistantPrompt },
+        { role: "user", content: message },
+      ],
+      maxTokens: 900,
+    });
+    const content = result.choices?.[0]?.message?.content;
+    if (typeof content === "string" && content.trim()) return content.trim();
+    if (Array.isArray(content)) {
+      const text = content
+        .filter((part): part is { type: "text"; text: string } => part.type === "text")
+        .map((part) => part.text)
+        .join("\n")
+        .trim();
+      if (text) return text;
+    }
+    throw new Error("The native AI returned an empty response.");
+  } catch (error) {
+    console.error("[Native AI] Assistant request failed:", error);
+    throw new TRPCError({
+      code: "BAD_GATEWAY",
+      message: "The native AI assistant could not respond. Check the Manus AI connection and try again.",
+    });
+  }
+}
+
 async function postToN8n(payload: Record<string, unknown>) {
   const webhook = n8nWebhookUrl();
   if (!webhook) {
     throw new TRPCError({
       code: "PRECONDITION_FAILED",
-      message: "The n8n webhook is not configured yet. Add N8N_WEBHOOK_URL to connect the AI agent.",
+      message: "The n8n workflow is not configured for this feature yet.",
     });
   }
 
@@ -37,7 +74,7 @@ async function postToN8n(payload: Record<string, unknown>) {
         ? "The n8n test webhook is not listening. Open the workflow in n8n and click Execute Workflow, or use its active production /webhook/ URL."
         : response.status === 500
           ? "The n8n workflow returned 500. Check the AI Agent/LLM node, credentials, and that the workflow returns a response field."
-        : `The n8n webhook returned ${response.status}. Check the workflow response and URL.`;
+          : `The n8n webhook returned ${response.status}. Check the workflow response and URL.`;
       throw new TRPCError({ code: "BAD_GATEWAY", message });
     }
     let parsed: unknown = raw;
@@ -47,22 +84,11 @@ async function postToN8n(payload: Record<string, unknown>) {
     if (error instanceof TRPCError) throw error;
     const message = error instanceof Error && error.name === "AbortError"
       ? "The n8n webhook timed out after 30 seconds."
-      : "Unable to reach the n8n webhook. Verify the endpoint and workflow status.";
+      : "Unable to reach the n8n workflow. Verify the endpoint and workflow status.";
     throw new TRPCError({ code: "TIMEOUT", message });
   } finally {
     clearTimeout(timeout);
   }
-}
-
-function extractAssistantResponse(payload: unknown) {
-  if (typeof payload === "string" && payload.trim()) return payload.trim();
-  if (payload && typeof payload === "object") {
-    const record = payload as Record<string, unknown>;
-    const response = [record.response, record.output, record.message, record.text, record.answer]
-      .find((value) => typeof value === "string" && value.trim());
-    if (typeof response === "string") return response.trim();
-  }
-  throw new TRPCError({ code: "BAD_GATEWAY", message: "The n8n webhook responded without a readable assistant message." });
 }
 
 export const appRouter = router({
@@ -78,17 +104,15 @@ export const appRouter = router({
   integrations: router({
     health: publicProcedure.query(() => ({
       n8nConfigured: Boolean(n8nWebhookUrl()),
+      nativeAIConfigured: Boolean(ENV.forgeApiKey),
       astraConfigured: Boolean(astraApiKey()),
-      architecture: "Website → n8n Webhook → AI Agent → LLM → Website",
+      architecture: "Website → Native AI Assistant → Manus LLM",
     })),
   }),
   assistant: router({
-    send: publicProcedure.input(assistantInput).mutation(async ({ input }) => {
-      // Keep the documented contract while also supporting n8n AI Agent workflows
-      // that commonly read the incoming chat text from `chatInput`.
-      const payload = await postToN8n({ ...input, chatInput: input.message });
-      return { response: extractAssistantResponse(payload) };
-    }),
+    send: publicProcedure.input(assistantInput).mutation(async ({ input }) => ({
+      response: await askNativeAssistant(input.message),
+    })),
   }),
   classifier: router({
     submit: publicProcedure.input(z.object({

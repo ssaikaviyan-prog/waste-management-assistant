@@ -16,7 +16,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const { data: health } = trpc.integrations.health.useQuery(undefined, { staleTime: 30_000 });
-  const agentReady = Boolean(health?.n8nConfigured);
+  const agentReady = Boolean(health?.nativeAIConfigured);
 
   return (
     <div className="app-frame">
@@ -35,7 +35,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
           <div className="topbar-actions">
             <span className={agentReady ? "status-chip ready" : "status-chip waiting"}>
-              <span className="status-dot" /> {agentReady ? "Agent connected" : "Agent setup pending"}
+              <span className="status-dot" /> {agentReady ? "Native AI connected" : "AI setup pending"}
             </span>
             <span className="avatar" aria-label="EcoSort workspace">ES</span>
             <button className="icon-button mobile-menu-button" aria-label="Open navigation" onClick={() => setMenuOpen((open) => !open)}>
@@ -55,8 +55,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </header>
       <main className="page-wrap">{children}</main>
       <footer className="footer">
-        <div><span className="footer-brand"><Leaf size={14} /> EcoSort AI</span><span>Frontend for an n8n-powered waste intelligence agent.</span></div>
-        <div className="footer-meta"><span><Bot size={13} /> n8n-ready</span><span><Activity size={13} /> {agentReady ? "Connected" : "Awaiting webhook"}</span></div>
+        <div><span className="footer-brand"><Leaf size={14} /> EcoSort AI</span><span>Native AI waste-management assistant powered server-side.</span></div>
+        <div className="footer-meta"><span><Bot size={13} /> Native AI</span><span><Activity size={13} /> {agentReady ? "Connected" : "Awaiting AI"}</span></div>
       </footer>
     </div>
   );

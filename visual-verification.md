@@ -21,3 +21,7 @@ After the fix, `/assistant` shows a non-error amber setup notice: questions are 
 ## Webhook-connected assistant verification
 
 The stored `N8N_WEBHOOK_URL` is recognized by the health query: `/assistant` shows **Agent connected**, the setup notice is gone, and suggested questions are enabled. Selecting a suggestion now submits it directly to the assistant mutation rather than only filling the composer. The supplied n8n test endpoint returned HTTP 404 for a POST because the n8n test webhook is not actively listening; the server now surfaces an actionable message directing the user to Execute Workflow or the production URL. Typecheck, 3 test files / 4 tests, and production build pass.
+
+## Native AI migration verification
+
+The assistant now shows **Native AI connected**, `Native AI / live assistant`, and the server-side request contract. The setup notice is gone, suggested questions remain available, and the page contains no n8n chatbot messaging. The About page now documents Website → Native AI → response and separates native chatbot behavior from future workflow integrations for reports and image classification. A real server-side Manus LLM smoke test returned safe lithium-ion battery disposal guidance. Typecheck, 5 tests, and production build passed.
